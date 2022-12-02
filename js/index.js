@@ -77,7 +77,7 @@ const DEFAULT_SPACE_IMAGE_PATH = ASSETS_BASE_PATH + "Scrabble_DefaultSpace.png";
 const WORDS_FILE = ASSETS_BASE_PATH + "words.txt";
 const SCRABBLE_SQUARE_CLASS = "scrabble-square";
 const DROPPABLE_HOVER_CLASS = "droppable-hover";
-const SCRABBLE_SPACE_CLASS = "scrabble-space";
+const BOARD_SPACE_CLASS = "board-space";
 const DRAGGABLE_CLASS = "draggable";
 const DROPPABLE_CLASS = "droppable";
 const TILE_CLASS = "tile";
@@ -99,7 +99,7 @@ const main = () => {
     // Copy a set of tiles for the current game
     const currentTiles = {...TILE_DISTRIBUTION};
 
-    // Generate an initial 7 tiles for the player
+    // Generate an initial array of tiles for the player
     const playerTiles = randTiles(currentTiles, NUM_TILES);
 
     // Perform all required initializations
@@ -107,7 +107,7 @@ const main = () => {
 };
 
 /***************************************
- * Helpers 
+ * JQuery 
  ***************************************/
 
 // Aggregates all required initializations
@@ -131,91 +131,6 @@ const initializePlayerTiles = (playerTiles) => {
     positionPlayerTiles();
 };
 
-// Reads the file of valid words and pushes each one into the list of valid words
-const initializeValidWords = () => {
-    jQuery.get(WORDS_FILE, (data) => {
-        // Ensure that the string is lower case
-        data = data.toUpperCase();
-
-        // Split the string
-        validWords = data.split("\r\n");
-    });
-};
-
-// Generates an array of n random tiles based on he tiles currently available
-const randTiles = (currentTiles, n) => {
-    // Initialization
-    const tiles = [];
-
-    // Generate n random tiles and push them into the array
-    for (let i = 0; i < n; i++)
-        tiles.push(randTile(currentTiles));
-    
-    return tiles;
-};
-
-// Generates a random tile based on the tiles currently available
-const randTile = (currentTiles) => {
-    // Determine the number of different tiles available
-    const numTilesAvailable = Object.keys(currentTiles).length;
-
-    // Return the empty string if no tiles are available
-    if (numTilesAvailable === 0)
-        return "";
-    
-    // Select a tile at random
-    const randTileIndex = randInt(0, numTilesAvailable);
-    const randTile = Object.keys(currentTiles)[randTileIndex];
-
-    // Decrement the quantity of the chosen tile remaining
-    currentTiles[randTile]--;
-
-    // Remove the chosen type of tile if no more remain
-    if (currentTiles[randTile] === 0)
-        delete currentTiles[randTile];
-
-    return randTile;
-};
-
-// Determines whether or not a given string is a valid Scrabble word
-const isScrabbleWord = (str) => {
-    // Clean up the given string
-    str = str.trim().toUpperCase();
-
-    // Search for the word in the list of valid words
-    return validWords.includes(str);
-};
-
-// Determines the string formed by the letters within the board row
-const getRowString = () => {
-    // Initialization
-    let str = "";
-
-    // Iterate over each board space
-    for (let i = 0; i < NUM_SPACES; i++) {
-        // Retrieve the current letter
-        const curr = $(`.${SCRABBLE_SPACE_CLASS}:nth-child(${i + 1})`);
-        const currLetter = curr.data("letter");
-
-        // Append the current letter to the string
-        if (typeof currLetter === "string")
-            str += currLetter;
-        else
-            str += " ";
-    }
-
-    return str;
-};
-
-// Generates a random integer in the range [min, max]
-const randInt = (min, max) => {
-    return Math.floor(Math.random() * (max - min)) + min;
-};
-
-/***************************************
- * JQuery 
- ***************************************/
-
 // Generates the board row
 const initializeBoardRowSpaces = () => {
     // Add the droppable elements
@@ -227,7 +142,10 @@ const initializeBoardRowSpaces = () => {
 
         // Append the image to the board row
         $("#board-row").append(`
-            <img alt="Board Space" class="${DROPPABLE_CLASS} ${SCRABBLE_SQUARE_CLASS} ${SCRABBLE_SPACE_CLASS}" src="${src}">
+            <img 
+                alt="Board Space" 
+                class="${DROPPABLE_CLASS} ${SCRABBLE_SQUARE_CLASS} ${BOARD_SPACE_CLASS}" 
+                src="${src}">
         `);
     }
 };
@@ -237,7 +155,9 @@ const initializeTileRackSpaces = () => {
     // Add the droppable elements
     for (let i = 0; i < NUM_TILES; i++) {
         $("#tile-rack-tile-container").append(`
-            <div class="${DROPPABLE_CLASS} ${SCRABBLE_SQUARE_CLASS}"></div>
+            <div 
+                class="${DROPPABLE_CLASS} ${SCRABBLE_SQUARE_CLASS}">
+            </div>
         `);
     }
 };
@@ -322,17 +242,21 @@ const handleDrop = (draggable, droppable) => {
         accept: `#${draggable.attr("id")}`
     });
 
-    // Check for a valid word if applicable
-    if (droppable.hasClass(SCRABBLE_SPACE_CLASS)) {
-        // Set the "letter" attribute of the droppable element
-        droppable.data("letter", draggable.data("letter"));
+    // Handle board space drops
+    if (droppable.hasClass(BOARD_SPACE_CLASS))
+        handleScrabbleSpaceDrop(draggable, droppable);
+};
 
-        // Check for a valid word
-        if (isScrabbleWord(getRowString())) {
-            console.log("Word");
-        } else {
-            console.log("Not Word");
-        }
+// Handles the case in which a tile is dropped onto a board space
+const handleScrabbleSpaceDrop = (draggable, droppable) => {
+    // Set the "letter" attribute of the droppable element
+    droppable.data("letter", draggable.data("letter"));
+
+    // Check for a valid word
+    if (isScrabbleWord(getRowString())) {
+        console.log("Word");
+    } else {
+        console.log("Not Word");
     }
 };
 
@@ -344,10 +268,98 @@ const handleOut = (droppable) => {
     });
 
     // Remove the "letter" attribute of the droppable element if applicable
-    if (droppable.hasClass(SCRABBLE_SPACE_CLASS)) {
+    if (droppable.hasClass(BOARD_SPACE_CLASS))
         droppable.removeData("letter");
-    }
 };
+
+/***************************************
+ * Helpers 
+ ***************************************/
+
+// Reads the file of valid words and pushes each one into the list of valid words
+const initializeValidWords = () => {
+    jQuery.get(WORDS_FILE, (data) => {
+        // Ensure that the string is lower case
+        data = data.toUpperCase();
+
+        // Split the string
+        validWords = data.split("\r\n");
+    });
+};
+
+// Generates an array of n random tiles based on he tiles currently available
+const randTiles = (currentTiles, n) => {
+    // Initialization
+    const tiles = [];
+
+    // Generate n random tiles and push them into the array
+    for (let i = 0; i < n; i++)
+        tiles.push(randTile(currentTiles));
+    
+    return tiles;
+};
+
+// Generates a random tile based on the tiles currently available
+const randTile = (currentTiles) => {
+    // Determine the number of different tiles available
+    const numTilesAvailable = Object.keys(currentTiles).length;
+
+    // Return the empty string if no tiles are available
+    if (numTilesAvailable === 0)
+        return "";
+    
+    // Select a tile at random
+    const randTileIndex = randInt(0, numTilesAvailable);
+    const randTile = Object.keys(currentTiles)[randTileIndex];
+
+    // Decrement the quantity of the chosen tile remaining
+    currentTiles[randTile]--;
+
+    // Remove the chosen type of tile if no more remain
+    if (currentTiles[randTile] === 0)
+        delete currentTiles[randTile];
+
+    return randTile;
+};
+
+// Determines whether or not a given string is a valid Scrabble word
+const isScrabbleWord = (str) => {
+    // Clean up the given string
+    str = str.trim().toUpperCase();
+
+    // Search for the word in the list of valid words
+    return validWords.includes(str);
+};
+
+// Determines the string formed by the letters within the board row
+const getRowString = () => {
+    // Initialization
+    let str = "";
+
+    // Iterate over each board space
+    for (let i = 0; i < NUM_SPACES; i++) {
+        // Retrieve the current letter
+        const curr = $(`.${BOARD_SPACE_CLASS}:nth-child(${i + 1})`);
+        const currLetter = curr.data("letter");
+
+        // Append the current letter to the string
+        if (typeof currLetter === "string")
+            str += currLetter;
+        else
+            str += " ";
+    }
+
+    return str;
+};
+
+// Generates a random integer in the range [min, max]
+const randInt = (min, max) => {
+    return Math.floor(Math.random() * (max - min)) + min;
+};
+
+/***************************************
+ * Execution
+ ***************************************/
 
 // Run
 $(document).ready(main);
