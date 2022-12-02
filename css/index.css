@@ -1,0 +1,130 @@
+/* Name: Samuel Claflin */
+/* Date: 12/1/2022 */
+/* Assignment: Homework 5 */
+/* Email: samuel_claflin@student.uml.edu */
+
+/* Roboto */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+/* Global Styles */
+* {
+    /* Sizing */
+    box-sizing: border-box;
+
+    /* Margin & padding */
+    margin: 0;
+    padding: 0;
+
+    /* Font configuration */
+    font-family: 'Roboto', sans-serif;
+}
+
+/* Variables */
+:root {
+    /* Colors */
+    --primary-color: #22b938;
+
+    /* Shadows */
+    --box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+/* Content Wrapper */
+#content-wrapper {
+    /* Display */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+/* Content Wrapper (All Immediate Children) */
+#content-wrapper > * {
+    /* Margin & padding */
+    margin-bottom: 25px;
+}
+
+/* Page Header */
+#page-header {
+    /* Sizing */
+    width: 100%;
+
+    /* Margin & padding */
+    padding: 15px;
+
+    /* Colors */
+    background-color: var(--primary-color);
+    color: white;
+
+    /* Font configuration */
+    font-size: 40px;
+    font-weight: 300;
+    text-align: center;
+
+    /* Shadows */
+    box-shadow: var(--box-shadow);
+}
+
+/* Board Row */
+#board-row {
+    /* Display */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    /* Shadow */
+    box-shadow: var(--box-shadow);
+}
+
+/* Tile Rack */
+#tile-rack {
+    /* Positioning */
+    position: relative;
+}
+
+/* Tile Rack Image */
+#tile-rack img {
+    /* Sizing */
+    width: 600px;
+}
+
+/* Tile Rack Tile Container */
+#tile-rack-tile-container {
+    /* Sizing */
+    width: 90%;
+
+    /* Display */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    /* Positioning */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    /* Margin & padding */
+    margin-left: 4px;
+}
+
+/* All Scrabble Spaces & Tiles */
+.scrabble-square {
+    /* Sizing */
+    width: 75px;
+    aspect-ratio: 1 / 1;
+}
+
+/* All Droppables */
+.droppable {
+    /* Animation configuration */
+    transition-duration: 0.3s;
+}
+
+/* All Droppables (Hover) */
+.droppable-hover {
+    /* Shadow */
+    box-shadow: var(--primary-color) 0px 3px 8px;
+
+    /* Transforms */
+    transform: scale(1.05);
+}
