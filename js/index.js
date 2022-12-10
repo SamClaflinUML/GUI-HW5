@@ -39,7 +39,36 @@ const TILE_DISTRIBUTION = {
     "X": 1,
     "Y": 2,
     "Z": 1,
-    "Blank": 2
+    "•": 2
+};
+const TILE_SCORES = {
+    "A": 1,
+    "B": 3,
+    "C": 3,
+    "D": 2,
+    "E": 1,
+    "F": 4,
+    "G": 2,
+    "H": 4,
+    "I": 1,
+    "J": 8,
+    "K": 5,
+    "L": 1,
+    "M": 3,
+    "N": 1,
+    "O": 1,
+    "P": 3,
+    "Q": 10,
+    "R": 1,
+    "S": 1,
+    "T": 1,
+    "U": 1,
+    "V": 4,
+    "W": 4,
+    "X": 8,
+    "Y": 4,
+    "Z": 10,
+    "•": 0
 };
 const ASSETS_BASE_PATH = "./assets/";
 const TILE_IMAGE_PATH_BASE = ASSETS_BASE_PATH + "Scrabble_Tiles/";
@@ -70,7 +99,7 @@ const TILE_IMAGE_PATHS = {
     "X": TILE_IMAGE_PATH_BASE + "Scrabble_Tile_X.jpg",
     "Y": TILE_IMAGE_PATH_BASE + "Scrabble_Tile_Y.jpg",
     "Z": TILE_IMAGE_PATH_BASE + "Scrabble_Tile_Z.jpg",
-    "Blank": TILE_IMAGE_PATH_BASE + "Scrabble_Tile_Blank.jpg"
+    "•": TILE_IMAGE_PATH_BASE + "Scrabble_Tile_Blank.jpg"
 };
 const DOUBLE_WORD_SPACE_IMAGE_PATH = ASSETS_BASE_PATH + "Scrabble_DoubleWordSpace.png";
 const DEFAULT_SPACE_IMAGE_PATH = ASSETS_BASE_PATH + "Scrabble_DefaultSpace.png";
@@ -83,6 +112,31 @@ const DROPPABLE_CLASS = "droppable";
 const TILE_CLASS = "tile";
 const NUM_SPACES = 7;
 const NUM_TILES = 7;
+
+/***************************************
+ * Classes 
+ ***************************************/
+
+// Encapsulates all statistics relevant to the player
+class Stats {
+    constructor(currentTiles) {
+        this.currentWordScore = 0;
+        this.totalScore = 0;
+        this.tilesRemaining = getNumTilesRemaining(currentTiles);
+    }
+
+    set currentWordScore(value) {
+        updateCurrentWordScore(value);
+    }
+
+    set totalScore(value) {
+        updateTotalScore(value);
+    }
+
+    set tilesRemaining(value) {
+        updateTilesRemaining(value);
+    }
+}
 
 /***************************************
  * Globals 
@@ -102,8 +156,11 @@ const main = () => {
     // Generate an initial array of tiles for the player
     const playerTiles = randTiles(currentTiles, NUM_TILES);
 
+    // Initialize the player's stats
+    const stats = new Stats(currentTiles);
+
     // Perform all required initializations
-    initialize(playerTiles);
+    initialize(playerTiles, stats);
 };
 
 /***************************************
@@ -111,17 +168,17 @@ const main = () => {
  ***************************************/
 
 // Aggregates all required initializations
-const initialize = (playerTiles) => {
+const initialize = (playerTiles, stats) => {
     initializeValidWords();
-    initializeDroppableSpaces();
+    initializeDroppableSpaces(stats);
     initializePlayerTiles(playerTiles);
 };
 
 // Performs all required graphical initializations for droppable spaces
-const initializeDroppableSpaces = () => {
+const initializeDroppableSpaces = (stats) => {
     initializeBoardRowSpaces();
     initializeTileRackSpaces();
-    initializeAllDroppables();
+    initializeAllDroppables(stats);
 };
 
 // Performs all required graphical initializations for the player's tiles
@@ -163,13 +220,13 @@ const initializeTileRackSpaces = () => {
 };
 
 // Calls the droppable() method on all required elements
-const initializeAllDroppables = () => {
+const initializeAllDroppables = (stats) => {
     $(`.${DROPPABLE_CLASS}`).droppable({
         accept: `.${DRAGGABLE_CLASS}`,
         drop: function(event, ui) {
             const draggable = ui.draggable;
             const droppable = $(this);
-            handleDrop(draggable, droppable);
+            handleDrop(draggable, droppable, stats);
         },
         out: function(event, ui) {
             const droppable = $(this);
@@ -229,7 +286,7 @@ const getTileImage = (tile, id) => {
 };
 
 // Handles the drop event for JQuery droppables
-const handleDrop = (draggable, droppable) => {
+const handleDrop = (draggable, droppable, stats) => {
     // Position the draggable element within the droppable element
     draggable.position({
         my: "left top",
@@ -242,21 +299,21 @@ const handleDrop = (draggable, droppable) => {
         accept: `#${draggable.attr("id")}`
     });
 
-    // Handle board space drops
-    if (droppable.hasClass(BOARD_SPACE_CLASS))
-        handleScrabbleSpaceDrop(draggable, droppable);
+    // Determine whether or not a word has been formed
+    checkWord(draggable, droppable, stats);
 };
 
 // Handles the case in which a tile is dropped onto a board space
-const handleScrabbleSpaceDrop = (draggable, droppable) => {
+const checkWord = (draggable, droppable, stats) => {
     // Set the "letter" attribute of the droppable element
     droppable.data("letter", draggable.data("letter"));
 
     // Check for a valid word
-    if (isScrabbleWord(getRowString())) {
-        console.log("Word");
+    const currWord = getRowString();
+    if (isScrabbleWord(currWord)) {
+        stats.currentWordScore = getWordScore(currWord);
     } else {
-        console.log("Not Word");
+        stats.currentWordScore = 0;
     }
 };
 
@@ -327,8 +384,32 @@ const isScrabbleWord = (str) => {
     // Clean up the given string
     str = str.trim().toUpperCase();
 
-    // Search for the word in the list of valid words
-    return validWords.includes(str);
+    // Determine the validity of the given string
+    let isValidWord = false;
+    if (str.includes("•")) { // The word does contain a blank character
+        const blankIndex = str.indexOf("•");
+        switch (blankIndex) {
+        case 0: { // The blank character is at the beginning of the string
+            const end = str.slice(1);
+            isValidWord = validWords.find(word => word.endsWith(end) && word.length === str.length);
+            break;
+        }
+        case str.length - 1: { // The blank character is at the end of the string
+            const start = str.slice(0, str.length - 1);
+            isValidWord = validWords.find(word => word.startsWith(start) && word.length === str.length);
+            break;
+        }
+        default: { // The blank character is somewhere in the middle of the string
+            const start = str.slice(0, blankIndex);
+            const end = str.slice(blankIndex + 1);
+            isValidWord = validWords.find(word => word.startsWith(start) && word.endsWith(end) && word.length === str.length);
+            break;
+        }}
+    } else { // The word does not contain a blank character
+        isValidWord = validWords.includes(str);
+    }
+
+    return isValidWord;
 };
 
 // Determines the string formed by the letters within the board row
@@ -345,16 +426,48 @@ const getRowString = () => {
         // Append the current letter to the string
         if (typeof currLetter === "string")
             str += currLetter;
-        else
-            str += " ";
     }
 
     return str;
 };
 
+// Updates the current word score in the UI
+const updateCurrentWordScore = (value) => {
+    $("#current-word-score").html(`Current Word Score: ${value}`);
+};
+
+// Updates the total score in the UI
+const updateTotalScore = (value) => {
+    $("#total-score").html(`Total Score: ${value}`);
+};
+
+// Updates the tiles remaining in the UI
+const updateTilesRemaining = (value) => {
+    $("#tiles-remaining").html(`Tiles Remaining: ${value}`);
+};
+
 // Generates a random integer in the range [min, max]
 const randInt = (min, max) => {
     return Math.floor(Math.random() * (max - min)) + min;
+};
+
+// Determines how many tiles are remaining based on a given tile distribution
+const getNumTilesRemaining = (currentTiles) => {
+    let numTilesRemaining = 0;
+    Object.keys(currentTiles).forEach(tile => {
+        numTilesRemaining += currentTiles[tile];
+    });
+
+    return numTilesRemaining;
+};
+
+// Computes the Scrabble score of a given word
+const getWordScore = (word) => {
+    let score = 0;
+    for (let i = 0; i < word.length; i++)
+        score += TILE_SCORES[word[i]];
+
+    return score;
 };
 
 /***************************************

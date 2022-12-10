@@ -16,13 +16,13 @@
     padding: 0;
 
     /* Font configuration */
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Tangerine', serif;
 }
 
 /* Variables */
 :root {
     /* Colors */
-    --primary-color: #22b938;
+    --primary-color: #800000;
 
     /* Shadows */
     --box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
@@ -49,15 +49,14 @@
     width: 100%;
 
     /* Margin & padding */
-    padding: 15px;
+    padding: 5px;
 
     /* Colors */
     background-color: var(--primary-color);
     color: white;
 
     /* Font configuration */
-    font-size: 40px;
-    font-weight: 300;
+    font-size: 60px;
     text-align: center;
 
     /* Shadows */
@@ -127,4 +126,21 @@
 
     /* Transforms */
     transform: scale(1.05);
+}
+
+/* Stats Container */
+#stats-container {
+    /* Sizing */
+    width: calc(75px * 7);
+
+    /* Display */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    /* Margin & padding */
+    padding: 0px 10px 0px 10px;
+
+    /* Font configuration */
+    font-size: 30px;
 }
