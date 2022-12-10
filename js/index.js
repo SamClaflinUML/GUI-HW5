@@ -309,7 +309,7 @@ const checkWord = (draggable, droppable, stats) => {
     droppable.data("letter", draggable.data("letter"));
 
     // Check for a valid word
-    const currWord = getRowString();
+    const currWord = getRowString().trim().toUpperCase();
     if (isScrabbleWord(currWord)) {
         stats.currentWordScore = getWordScore(currWord);
     } else {
@@ -381,35 +381,141 @@ const randTile = (currentTiles) => {
 
 // Determines whether or not a given string is a valid Scrabble word
 const isScrabbleWord = (str) => {
-    // Clean up the given string
-    str = str.trim().toUpperCase();
+    // Check for internal whitespace
+    if (str.includes(" "))
+        return false;
 
     // Determine the validity of the given string
+    return str.includes("•")
+        ? isScrabbleWordWithBlanks(str) 
+        : isScrabbleWordWithoutBlanks(str); 
+};
+
+// Determines whether or not a given string is a valid scrabble word (without blanks)
+const isScrabbleWordWithBlanks = (str) => {
+    // Initialization
     let isValidWord = false;
-    if (str.includes("•")) { // The word does contain a blank character
-        const blankIndex = str.indexOf("•");
-        switch (blankIndex) {
-        case 0: { // The blank character is at the beginning of the string
-            const end = str.slice(1);
-            isValidWord = validWords.find(word => word.endsWith(end) && word.length === str.length);
-            break;
+
+    // Determine the validity of the given string based on its quantity of blank characters
+    switch (getNumOccurrences(str, "•")) {
+    case 1: {
+        isValidWord = isScrabbleWordWithOneBlank(str);
+        break;
+    }
+    case 2: {
+        isValidWord = isScrabbleWordWithTwoBlanks(str);
+        break;
+    }
+    default: {
+        throw "isScrabbleWordWithBlanks(): The given string does not contain any blank characters";
+    }}
+
+    return isValidWord;
+};
+
+// Determines whether or not a given string with exactly one blank character is a valid Scrabble word
+const isScrabbleWordWithOneBlank = (str) => {
+    // Initialization
+    let isValidWord = false;
+
+    // Determine the validity of the given string
+    const blankIndex = str.indexOf("•");
+    switch (blankIndex) {
+    case 0: { // The blank character is at the beginning of the string
+        const end = str.slice(1);
+        isValidWord = validWords.find(word => 
+            word.endsWith(end) 
+            && word.length === str.length) !== undefined;
+        break;
+    }
+    case str.length - 1: { // The blank character is at the end of the string
+        const start = str.slice(0, str.length - 1);
+        isValidWord = validWords.find(word => 
+            word.startsWith(start) 
+            && word.length === str.length) !== undefined;
+        break;
+    }
+    default: { // The blank character is somewhere in the middle of the string
+        const start = str.slice(0, blankIndex);
+        const end = str.slice(blankIndex + 1);
+        isValidWord = validWords.find(word => 
+            word.startsWith(start) 
+            && word.endsWith(end) 
+            && word.length === str.length) !== undefined;
+        break;
+    }}
+
+    return isValidWord;
+};
+
+// Determines whether or not a given string with exactly two blanks is a valid Scrabble word
+const isScrabbleWordWithTwoBlanks = (str) => {
+    // Initialization
+    let isValidWord = false;
+
+    // Determine the validity of the given string
+    const firstBlankIndex = str.indexOf("•");
+    const secondBlankIndex = str.lastIndexOf("•");
+    const indexDifference = Math.abs(firstBlankIndex - secondBlankIndex);
+    if (firstBlankIndex === 0) {
+        if (secondBlankIndex === str.length - 1) { // The blank characters are at the beginning and the end
+            const middle = str.slice(1, str.length - 1);
+            isValidWord = validWords.find(word => 
+                !word.startsWith(middle) 
+                && !word.endsWith(middle)
+                && word.includes(middle)
+                && word.length === str.length) !== undefined;
+        } else { // The blank characters are at the beginning and in the middle
+            // Compute the start and end substrings
+            const start = str.slice(1, secondBlankIndex);
+            const end = str.slice(secondBlankIndex + 1);
+
+            // Determine whether or not the blank characters are adjacent
+            isValidWord = indexDifference === 1
+                ? validWords.find(word =>   // Blank characters are adjacent
+                    word.endsWith(end)
+                    && word.length === str.length)
+                : validWords.find(word =>   // Blank characters are NOT adjacent
+                    word.includes(start) 
+                    && word.includes(end) 
+                    && !word.startsWith(start) 
+                    && word.endsWith(end) 
+                    && word.length === str.length) !== undefined;
         }
-        case str.length - 1: { // The blank character is at the end of the string
-            const start = str.slice(0, str.length - 1);
-            isValidWord = validWords.find(word => word.startsWith(start) && word.length === str.length);
-            break;
+    } else {
+        if (secondBlankIndex === str.length - 1) { // The blank characters are at the middle and the end
+            // Compute the start and end substrings
+            const start = str.slice(0, firstBlankIndex);
+            const end = str.slice(firstBlankIndex + 1, str.length - 1);
+
+            // Determine whether or not the blank characters are adjacent
+            isValidWord = indexDifference === 1
+                ? validWords.find(word =>   // Blank characters are adjacent
+                    word.endsWith(end)
+                    && word.length === str.length)
+                : validWords.find(word =>   // Blank characters are NOT adjacent
+                    word.startsWith(start) 
+                    && !word.endsWith(end) 
+                    && word.includes(end) 
+                    && word.length === str.length) !== undefined;
+        } else { // The blank characters are both in the middle
+            const start = str.slice(0, firstBlankIndex);
+            const middle = str.slice(firstBlankIndex + 1, secondBlankIndex);
+            const end = str.slice(secondBlankIndex + 1);
+            isValidWord = validWords.find(word => 
+                word.startsWith(start) 
+                && word.endsWith(end) 
+                && word.includes(middle)
+                && word.length === str.length) !== undefined;
         }
-        default: { // The blank character is somewhere in the middle of the string
-            const start = str.slice(0, blankIndex);
-            const end = str.slice(blankIndex + 1);
-            isValidWord = validWords.find(word => word.startsWith(start) && word.endsWith(end) && word.length === str.length);
-            break;
-        }}
-    } else { // The word does not contain a blank character
-        isValidWord = validWords.includes(str);
     }
 
     return isValidWord;
+};
+
+// Determines whether or not a given string is a valid scrabble word (without blanks)
+const isScrabbleWordWithoutBlanks = (str) => {
+    return validWords.includes(str);
 };
 
 // Determines the string formed by the letters within the board row
@@ -426,6 +532,8 @@ const getRowString = () => {
         // Append the current letter to the string
         if (typeof currLetter === "string")
             str += currLetter;
+        else
+            str += " ";
     }
 
     return str;
@@ -446,11 +554,6 @@ const updateTilesRemaining = (value) => {
     $("#tiles-remaining").html(`Tiles Remaining: ${value}`);
 };
 
-// Generates a random integer in the range [min, max]
-const randInt = (min, max) => {
-    return Math.floor(Math.random() * (max - min)) + min;
-};
-
 // Determines how many tiles are remaining based on a given tile distribution
 const getNumTilesRemaining = (currentTiles) => {
     let numTilesRemaining = 0;
@@ -464,10 +567,21 @@ const getNumTilesRemaining = (currentTiles) => {
 // Computes the Scrabble score of a given word
 const getWordScore = (word) => {
     let score = 0;
-    for (let i = 0; i < word.length; i++)
+    for (let i = 0; i < word.length; i++) {
         score += TILE_SCORES[word[i]];
+    }
 
     return score;
+};
+
+// Computes the number of occurrences of a given character in a given string
+const getNumOccurrences = (str, char) => {
+    return str.split(char).length - 1;
+};
+
+// Generates a random integer in the range [min, max]
+const randInt = (min, max) => {
+    return Math.floor(Math.random() * (max - min)) + min;
 };
 
 /***************************************
