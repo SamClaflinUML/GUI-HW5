@@ -114,35 +114,15 @@ const NUM_SPACES = 7;
 const NUM_TILES = 7;
 
 /***************************************
- * Classes 
- ***************************************/
-
-// Encapsulates all statistics relevant to the player
-class Stats {
-    constructor(currentTiles) {
-        this.currentWordScore = 0;
-        this.totalScore = 0;
-        this.tilesRemaining = getNumTilesRemaining(currentTiles);
-    }
-
-    set currentWordScore(value) {
-        updateCurrentWordScore(value);
-    }
-
-    set totalScore(value) {
-        updateTotalScore(value);
-    }
-
-    set tilesRemaining(value) {
-        updateTilesRemaining(value);
-    }
-}
-
-/***************************************
  * Globals 
  ***************************************/
 
 let validWords = [];
+let currentTiles = {};
+let playerTiles = [];
+let currentWordScore = 0;
+let totalScore = 0;
+let tilesRemaining = 0;
 
 /***************************************
  * Functions
@@ -151,16 +131,19 @@ let validWords = [];
 // Entry point
 const main = () => {
     // Copy a set of tiles for the current game
-    const currentTiles = {...TILE_DISTRIBUTION};
+    currentTiles = {...TILE_DISTRIBUTION};
 
     // Generate an initial array of tiles for the player
-    const playerTiles = randTiles(currentTiles, NUM_TILES);
+    playerTiles = randTiles(NUM_TILES);
+    tilesRemaining = getNumTilesRemaining();
 
-    // Initialize the player's stats
-    const stats = new Stats(currentTiles);
+    // Render the stats
+    updateAllStats();
 
     // Perform all required initializations
-    initialize(playerTiles, stats);
+    initialize();
+    $("#submit-word-button").click(() => handleSubmitWordButtonClicked());
+    $("#new-tiles-button").click(() => handleNewTilesButtonClicked());
 };
 
 /***************************************
@@ -168,22 +151,25 @@ const main = () => {
  ***************************************/
 
 // Aggregates all required initializations
-const initialize = (playerTiles, stats) => {
+const initialize = () => {
     initializeValidWords();
-    initializeDroppableSpaces(stats);
-    initializePlayerTiles(playerTiles);
+    initializeDroppableSpaces();
+    initializePlayerTiles();
+
+    // Ensure that the "Submit Word" button is initially disabled
+    enableDisableSubmitWordButton(false);
 };
 
 // Performs all required graphical initializations for droppable spaces
-const initializeDroppableSpaces = (stats) => {
+const initializeDroppableSpaces = () => {
     initializeBoardRowSpaces();
     initializeTileRackSpaces();
-    initializeAllDroppables(stats);
+    initializeAllDroppables();
 };
 
 // Performs all required graphical initializations for the player's tiles
-const initializePlayerTiles = (playerTiles) => {
-    renderPlayerTiles(playerTiles);
+const initializePlayerTiles = () => {
+    renderPlayerTiles();
     initializeAllDraggables();
     positionPlayerTiles();
 };
@@ -220,13 +206,13 @@ const initializeTileRackSpaces = () => {
 };
 
 // Calls the droppable() method on all required elements
-const initializeAllDroppables = (stats) => {
+const initializeAllDroppables = () => {
     $(`.${DROPPABLE_CLASS}`).droppable({
         accept: `.${DRAGGABLE_CLASS}`,
         drop: function(event, ui) {
             const draggable = ui.draggable;
             const droppable = $(this);
-            handleDrop(draggable, droppable, stats);
+            handleDrop(draggable, droppable);
         },
         out: function(event, ui) {
             const droppable = $(this);
@@ -237,7 +223,7 @@ const initializeAllDroppables = (stats) => {
 };
 
 // Renders an array of tiles to the page
-const renderPlayerTiles = (playerTiles) => {
+const renderPlayerTiles = () => {
     playerTiles.forEach((playerTile, idx) => {
         const id = `${Date.now()}-${idx}`;
         $("#content-wrapper").append(getTileImage(playerTile, id));
@@ -286,7 +272,7 @@ const getTileImage = (tile, id) => {
 };
 
 // Handles the drop event for JQuery droppables
-const handleDrop = (draggable, droppable, stats) => {
+const handleDrop = (draggable, droppable) => {
     // Position the draggable element within the droppable element
     draggable.position({
         my: "left top",
@@ -300,21 +286,28 @@ const handleDrop = (draggable, droppable, stats) => {
     });
 
     // Determine whether or not a word has been formed
-    checkWord(draggable, droppable, stats);
+    checkWord(draggable, droppable);
 };
 
-// Handles the case in which a tile is dropped onto a board space
-const checkWord = (draggable, droppable, stats) => {
+// Determines whether or not a word has been formed
+const checkWord = (draggable, droppable) => {
     // Set the "letter" attribute of the droppable element
     droppable.data("letter", draggable.data("letter"));
 
     // Check for a valid word
     const currWord = getRowString().trim().toUpperCase();
     if (isScrabbleWord(currWord)) {
-        stats.currentWordScore = getWordScore(currWord);
+        // Enable the "Submit Word" button
+        enableDisableSubmitWordButton(true);
+        currentWordScore = getWordScore(currWord);
     } else {
-        stats.currentWordScore = 0;
+        // Disable the "Submit Word" button
+        enableDisableSubmitWordButton(false);
+        currentWordScore = 0;
     }
+
+    // Update all stats in the UI
+    updateAllStats();
 };
 
 // Handles the out event for JQuery droppables
@@ -327,6 +320,109 @@ const handleOut = (droppable) => {
     // Remove the "letter" attribute of the droppable element if applicable
     if (droppable.hasClass(BOARD_SPACE_CLASS))
         droppable.removeData("letter");
+};
+
+// Updates all stats in the UI
+const updateAllStats = () => {
+    updateCurrentWordScore();
+    updateTotalScore();
+    updateTilesRemaining();
+};
+
+// Updates the current word score in the UI
+const updateCurrentWordScore = () => {
+    $("#current-word-score").html(`Current Word Score: ${currentWordScore}`);
+};
+
+// Updates the total score in the UI
+const updateTotalScore = (value) => {
+    $("#total-score").html(`Total Score: ${totalScore}`);
+};
+
+// Updates the tiles remaining in the UI
+const updateTilesRemaining = (value) => {
+    $("#tiles-remaining").html(`Tiles Remaining: ${tilesRemaining}`);
+};
+
+// Callback for the "Submit Word" button
+const handleSubmitWordButtonClicked = () => {
+    // Disable the submit button
+    enableDisableSubmitWordButton(false);
+
+    // Remove the used tiles from the player's rack
+    for (let i = 0; i < NUM_SPACES; i++) {
+        // Retrieve the current letter
+        const curr = $(`.${BOARD_SPACE_CLASS}:nth-child(${i + 1})`);
+        const currLetter = curr.data("letter");
+        
+        // Remove the current letter if applicable
+        if (typeof currLetter !== "undefined") {
+            const idx = playerTiles.findIndex(tile => tile === currLetter);
+            playerTiles.splice(idx, 1);
+        }
+    }
+
+    // Destroy all existing tile elements
+    removeAllDraggables();
+
+    // Generate new tiles for the player
+    const numTilesToGenerate = NUM_TILES - playerTiles.length;
+    playerTiles = playerTiles.concat(randTiles(numTilesToGenerate));
+
+    // Initialize the new tiles
+    initializePlayerTiles();
+
+    // Update all stats
+    totalScore = currentWordScore;
+    currentWordScore = 0;
+    tilesRemaining = getNumTilesRemaining();
+    updateAllStats();
+
+    // Re-initialize droppables
+    initializeAllDroppables();
+};
+
+// Callback for the "New Tiles" button
+const handleNewTilesButtonClicked = () => {
+    // Put each tile back
+    playerTiles.forEach(tile => {
+        if (tile in currentTiles)
+            currentTiles[tile]++;
+        else
+            currentTiles[tile] = 1;
+    });
+
+    // Generate a new set of tiles
+    playerTiles = randTiles(NUM_TILES);
+
+    // Destroy all existing tile elements
+    removeAllDraggables();
+
+    // Render and initialize the new tiles
+    initializePlayerTiles();
+
+    // Re-initialize all droppables
+    initializeAllDroppables();
+};
+
+// Callback for the "Clear Board" button
+const handleClearBoardButtonClicked = () => {
+    // TODO
+};
+
+// Callback for the "Restart" button
+const handleRestartButtonClicked = () => {
+    // TODO
+};
+
+// Enables or disables the "Submit Word" button
+const enableDisableSubmitWordButton = (isEnabled) => {
+    $("#submit-word-button").prop("disabled", !isEnabled);
+};
+
+// Deletes all draggable elements from the DOM
+const removeAllDraggables = () => {
+    $(`.${DRAGGABLE_CLASS}`).remove();
 };
 
 /***************************************
@@ -345,19 +441,19 @@ const initializeValidWords = () => {
 };
 
 // Generates an array of n random tiles based on he tiles currently available
-const randTiles = (currentTiles, n) => {
+const randTiles = (n) => {
     // Initialization
     const tiles = [];
 
     // Generate n random tiles and push them into the array
     for (let i = 0; i < n; i++)
-        tiles.push(randTile(currentTiles));
+        tiles.push(randTile());
     
     return tiles;
 };
 
 // Generates a random tile based on the tiles currently available
-const randTile = (currentTiles) => {
+const randTile = () => {
     // Determine the number of different tiles available
     const numTilesAvailable = Object.keys(currentTiles).length;
 
@@ -539,23 +635,8 @@ const getRowString = () => {
     return str;
 };
 
-// Updates the current word score in the UI
-const updateCurrentWordScore = (value) => {
-    $("#current-word-score").html(`Current Word Score: ${value}`);
-};
-
-// Updates the total score in the UI
-const updateTotalScore = (value) => {
-    $("#total-score").html(`Total Score: ${value}`);
-};
-
-// Updates the tiles remaining in the UI
-const updateTilesRemaining = (value) => {
-    $("#tiles-remaining").html(`Tiles Remaining: ${value}`);
-};
-
 // Determines how many tiles are remaining based on a given tile distribution
-const getNumTilesRemaining = (currentTiles) => {
+const getNumTilesRemaining = () => {
     let numTilesRemaining = 0;
     Object.keys(currentTiles).forEach(tile => {
         numTilesRemaining += currentTiles[tile];

@@ -144,3 +144,64 @@
     /* Font configuration */
     font-size: 30px;
 }
+
+/* Button Container */
+#button-container {
+    /* Display */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+/* Button Container Buttons */
+#button-container > button {
+    /* Sizing */
+    width: 175px;
+
+    /* Colors */
+    background-color: var(--primary-color);
+    color: white;
+
+    /* Borders */
+    border: 2px solid transparent;
+    border-radius: 10px;
+
+    /* Font Configuration */
+    font-size: 35px;
+
+    /* Margin & padding */
+    margin-bottom: 10px;
+    padding: 5px 20px 5px 10px;
+
+    /* Shadow */
+    box-shadow: var(--box-shadow);
+
+    /* Animation configuration */
+    transition-duration: 0.2s;
+}
+
+/* Button Container Button (Hover) */
+#button-container > button:hover {
+    /* Cursor */
+    cursor: pointer;
+
+    /* Colors */
+    background-color: white;
+    color: var(--primary-color);
+
+    /* Borders */
+    border: 2px solid var(--primary-color);
+}
+
+/* Button Container Buttons (Disabled) */
+#button-container > button:disabled {
+    /* Cursor */
+    cursor: default !important;
+
+    /* Colors */
+    background-color: #4d0505 !important;
+    color: gray !important;
+
+    /* Borders */
+    border: none !important;
+}
