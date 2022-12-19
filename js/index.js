@@ -131,7 +131,7 @@ let tilesRemaining = 0;
 // Entry point
 const main = () => {
     // Copy a set of tiles for the current game
-    currentTiles = {...TILE_DISTRIBUTION};
+    initializeCurrentTiles();
 
     // Generate an initial array of tiles for the player
     playerTiles = randTiles(NUM_TILES);
@@ -142,22 +142,36 @@ const main = () => {
 
     // Perform all required initializations
     initialize();
-    $("#submit-word-button").click(() => handleSubmitWordButtonClicked());
-    $("#new-tiles-button").click(() => handleNewTilesButtonClicked());
 };
 
 /***************************************
  * JQuery 
  ***************************************/
 
+const setupGame = () => {
+    // Copy a set of tiles for the current game
+    initializeCurrentTiles();
+
+    // Generate an initial array of tiles for the player
+    playerTiles = randTiles(NUM_TILES);
+    tilesRemaining = getNumTilesRemaining();
+
+    // Render the stats
+    updateAllStats();
+
+    // Perform all required initializations
+    initialize();
+};
+
 // Aggregates all required initializations
 const initialize = () => {
+    // Ensure that the "Submit Word" button is initially disabled
+    enableDisableSubmitWordButton(false);
+
     initializeValidWords();
     initializeDroppableSpaces();
     initializePlayerTiles();
-
-    // Ensure that the "Submit Word" button is initially disabled
-    enableDisableSubmitWordButton(false);
+    initializeAllButtons();
 };
 
 // Performs all required graphical initializations for droppable spaces
@@ -172,6 +186,14 @@ const initializePlayerTiles = () => {
     renderPlayerTiles();
     initializeAllDraggables();
     positionPlayerTiles();
+};
+
+const initializeAllButtons = () => {
+    // Add click handlers to all buttons
+    $("#submit-word-button").click(handleSubmitWordButtonClicked);
+    $("#new-tiles-button").click(handleNewTilesButtonClicked);
+    $("#clear-board-button").click(handleClearBoardButtonClicked);
+    $("#restart-button").click(handleRestartButtonClicked);
 };
 
 // Generates the board row
@@ -373,13 +395,16 @@ const handleSubmitWordButtonClicked = () => {
     initializePlayerTiles();
 
     // Update all stats
-    totalScore = currentWordScore;
+    totalScore += currentWordScore;
     currentWordScore = 0;
     tilesRemaining = getNumTilesRemaining();
     updateAllStats();
 
     // Re-initialize droppables
     initializeAllDroppables();
+
+    // Delete all letter data
+    clearLetterData();
 };
 
 // Callback for the "New Tiles" button
@@ -403,16 +428,45 @@ const handleNewTilesButtonClicked = () => {
 
     // Re-initialize all droppables
     initializeAllDroppables();
+
+    // Delete all letter data
+    clearLetterData();
 };
 
 // Callback for the "Clear Board" button
 const handleClearBoardButtonClicked = () => {
-    // TODO
+    // Ensure that the "Submit Word" button is disabled
+    enableDisableSubmitWordButton(false);
+
+    // Move the player's tiles back to the rack
+    positionPlayerTiles();
+
+    // Re-initialize droppables
+    initializeAllDroppables();
+
+    // Update all stats
+    currentWordScore = 0;
+    updateAllStats();
+
+    // Delete all letter data
+    clearLetterData();
 };
 
 // Callback for the "Restart" button
 const handleRestartButtonClicked = () => {
-    // TODO
+    // Re-initialize where applicable
+    initializeCurrentTiles();
+    playerTiles = randTiles(NUM_TILES);
+    removeAllDraggables();
+    initializePlayerTiles();
+    initializeAllDroppables();
+    clearLetterData();
+
+    // Update stats
+    currentWordScore = 0;
+    totalScore = 0;
+    tilesRemaining = getNumTilesRemaining();
+    updateAllStats();
 };
 
 // Enables or disables the "Submit Word" button
@@ -423,6 +477,15 @@ const enableDisableSubmitWordButton = (isEnabled) => {
 // Deletes all draggable elements from the DOM
 const removeAllDraggables = () => {
     $(`.${DRAGGABLE_CLASS}`).remove();
+};
+
+// Deletes letter data from all board row spaces
+const clearLetterData = () => {
+    for (let i = 0; i < NUM_SPACES; i++) {
+        // Retrieve the current letter
+        const curr = $(`.${BOARD_SPACE_CLASS}:nth-child(${i + 1})`);
+        curr.removeData("letter");
+    }
 };
 
 /***************************************
@@ -438,6 +501,11 @@ const initializeValidWords = () => {
         // Split the string
         validWords = data.split("\r\n");
     });
+};
+
+// Initializes the data structure that stores the current tiles 
+const initializeCurrentTiles = () => {
+    currentTiles = {...TILE_DISTRIBUTION};
 };
 
 // Generates an array of n random tiles based on he tiles currently available
