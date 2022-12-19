@@ -363,12 +363,12 @@ const updateCurrentWordScore = () => {
 };
 
 // Updates the total score in the UI
-const updateTotalScore = (value) => {
+const updateTotalScore = () => {
     $("#total-score").html(`Total Score: ${totalScore}`);
 };
 
 // Updates the tiles remaining in the UI
-const updateTilesRemaining = (value) => {
+const updateTilesRemaining = () => {
     $("#tiles-remaining").html(`Tiles Remaining: ${tilesRemaining}`);
 };
 
