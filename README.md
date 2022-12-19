@@ -1,9 +1,9 @@
 # GUI Programming Homework 5
 
 ## Links
-Repository Link: 
+Repository Link: https://github.com/SamClaflinUML/GUI-HW5
 
-GitHub Pages Link: 
+GitHub Pages Link: https://samclaflinuml.github.io/GUI-HW5/
  
 ## Features 
 In this assignment, I was able to implement all required features in addition to the extra credit requirement of performing accurate word verification. Initially, I attempted to implement word verification using the provided file on the UML CS servers, but realized that it contained many words that weren't valid by Scrabble rules and was missing many that were. Therefore, I sourced my own text file containing all 270k+ valid Scrabble words. Achieving basic word verification isn't terribly complicated; I did so by initializing an array containing all the words from the aforementioned text file and simply using the built-in find() method to search for the player's parsed word. I found that the complexity arose when accounting for one or more blank tiles. This is because it would, of course, take quite a long time to perform a letter substitution for the blank tile(s) and check the formed word against the array of valid words. To combat this, I constructed an algorithm that determines where the blank tile(s) are within the word, splits the word on the blank tile(s), and checks to see if any word within the array starts in the same way that the resulting split word starts, ends in the same way that the resulting split word ends, and has the same overall length as the given word. 
