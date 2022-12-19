@@ -288,15 +288,15 @@ const positionPlayerTiles = () => {
 
 // Returns the HTML string of an image that corresponds with a given tile
 const getTileImage = (tile, id) => {
-    // Generate a unique ID for each tile
-    return `
-        <img 
+    const src = TILE_IMAGE_PATHS[tile];
+    return src !== undefined
+        ? `<img 
             alt="Tile" 
             id="${id}" 
             class="${SCRABBLE_SQUARE_CLASS} ${DRAGGABLE_CLASS}" 
-            src="${TILE_IMAGE_PATHS[tile]}" 
-            data-letter="${tile}">
-    `;
+            src="${src}" 
+            data-letter="${tile}">`
+        : "<div>/<div>";
 };
 
 // Handles the drop event for JQuery droppables
