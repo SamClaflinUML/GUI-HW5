@@ -106,6 +106,7 @@ const DEFAULT_SPACE_IMAGE_PATH = ASSETS_BASE_PATH + "Scrabble_DefaultSpace.png";
 const WORDS_FILE = ASSETS_BASE_PATH + "words.txt";
 const SCRABBLE_SQUARE_CLASS = "scrabble-square";
 const DROPPABLE_HOVER_CLASS = "droppable-hover";
+const DOUBLE_SCORE_CLASS = "double-score";
 const BOARD_SPACE_CLASS = "board-space";
 const DRAGGABLE_CLASS = "draggable";
 const DROPPABLE_CLASS = "droppable";
@@ -201,15 +202,20 @@ const initializeBoardRowSpaces = () => {
     // Add the droppable elements
     for (let i = 0; i < NUM_SPACES; i++) {
         // Determine which image to use
-        const src = i == 1 || i == 5
-            ? DOUBLE_WORD_SPACE_IMAGE_PATH
-            : DEFAULT_SPACE_IMAGE_PATH;
+        let src = null;
+        let classList = `${DROPPABLE_CLASS} ${SCRABBLE_SQUARE_CLASS} ${BOARD_SPACE_CLASS}`;
+        if (i === 1 || i === 5) {
+            src = DOUBLE_WORD_SPACE_IMAGE_PATH;
+            classList += ` ${DOUBLE_SCORE_CLASS}`;
+        } else {
+            src = DEFAULT_SPACE_IMAGE_PATH;
+        }
 
         // Append the image to the board row
         $("#board-row").append(`
             <img 
                 alt="Board Space" 
-                class="${DROPPABLE_CLASS} ${SCRABBLE_SQUARE_CLASS} ${BOARD_SPACE_CLASS}" 
+                class="${classList}" 
                 src="${src}">
         `);
     }
@@ -321,7 +327,7 @@ const checkWord = (draggable, droppable) => {
     if (isScrabbleWord(currWord)) {
         // Enable the "Submit Word" button
         enableDisableSubmitWordButton(true);
-        currentWordScore = getWordScore(currWord);
+        currentWordScore = getWordScore();
     } else {
         // Disable the "Submit Word" button
         enableDisableSubmitWordButton(false);
@@ -714,13 +720,25 @@ const getNumTilesRemaining = () => {
 };
 
 // Computes the Scrabble score of a given word
-const getWordScore = (word) => {
+const getWordScore = () => {
     let score = 0;
-    for (let i = 0; i < word.length; i++) {
-        score += TILE_SCORES[word[i]];
+    let scoreMultiplier = 1;
+    for (let i = 0; i < NUM_SPACES; i++) {
+        // Retrieve the current letter
+        const curr = $(`.${BOARD_SPACE_CLASS}:nth-child(${i + 1})`);
+        const currLetter = curr.data("letter");
+
+        if (typeof currLetter === "string") {
+            // Add the letter score to the total score
+            score += TILE_SCORES[currLetter];
+
+            // Increase the score multiplier if applicable
+            if (curr.hasClass(DOUBLE_SCORE_CLASS))
+                scoreMultiplier *= 2;
+        }
     }
 
-    return score;
+    return score * scoreMultiplier;
 };
 
 // Computes the number of occurrences of a given character in a given string
